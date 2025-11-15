@@ -1,4 +1,4 @@
-name: "Vprofile IAC"
+ name: "Vprofile IAC"
 
 on:
   push:
@@ -52,10 +52,17 @@ jobs:
       - name: Terraform plan
         id: plan
         run: terraform plan
-        continue-on-error: true
+        # Continue-on-error is used so the next step can check the outcome
+        continue-on-error: true 
 
-      - name: Terraform plan status
+      - name: Terraform plan status (Failed)
+        # This step runs if the plan failed, prints a message, and exits the job.
         if: steps.plan.outcome == 'failure'
         run: |
           echo "Terraform plan failed. Fix the errors, push the changes, and re-run the workflow."
           exit 1
+
+      - name: Terraform apply
+        # CRITICAL: Apply only runs on a direct 'push' event AND only if the plan was successful.
+        if: github.event_name == 'push' && steps.plan.outcome == 'success'
+        run: terraform apply -auto-approve
